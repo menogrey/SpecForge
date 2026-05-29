@@ -11,6 +11,12 @@ import time
 import warnings
 from typing import Optional, Tuple
 
+try:
+    import torch_npu
+    from torch_npu.contrib import transfer_to_npu
+except ImportError:
+    pass
+
 import torch
 import torch.distributed as dist
 from accelerate.utils import set_seed

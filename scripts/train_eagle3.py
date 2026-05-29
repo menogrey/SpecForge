@@ -6,6 +6,12 @@ import time
 from argparse import ArgumentParser, Namespace
 from typing import List, Optional, Tuple, Union
 
+try:
+    import torch_npu
+    from torch_npu.contrib import transfer_to_npu
+except ImportError:
+    pass
+
 import torch
 import torch.distributed as dist
 import torch.nn as nn

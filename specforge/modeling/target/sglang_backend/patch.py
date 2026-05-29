@@ -16,6 +16,7 @@ from sglang.srt.server_args import ServerArgs
 from sglang.srt.utils import get_bool_env_var
 
 from specforge.distributed import get_tp_group as get_specforge_tp_group
+from specforge.distributed import _DEVICE_TYPE
 
 logger = logging.getLogger(__name__)
 
@@ -44,10 +45,11 @@ def init_distributed_environment(
     for i in range(num_tp_groups):
         tp_ranks.append(list(range(i * tp_size, (i + 1) * tp_size)))
 
+    world_backend = "gloo" if _DEVICE_TYPE == "npu" else backend
     parallel_state._WORLD = GroupCoordinator(
         group_ranks=tp_ranks,
         local_rank=local_rank,
-        torch_distributed_backend=backend,
+        torch_distributed_backend=world_backend,
         use_pynccl=False,
         use_pymscclpp=False,
         use_custom_allreduce=False,
@@ -109,6 +111,12 @@ def initialize_model_parallel(
     world_size: int = parallel_state._WORLD.world_size
     backend = backend or dist.get_backend(parallel_state._WORLD.device_group)
 
+    gloo_backend = "gloo"
+    tp_backend = backend
+
+    if _DEVICE_TYPE == "npu":
+        tp_backend = "hccl"
+
     if world_size != tensor_model_parallel_size * pipeline_model_parallel_size:
         raise RuntimeError(
             f"world_size ({world_size}) is not equal to "
@@ -135,7 +143,7 @@ def initialize_model_parallel(
     parallel_state._TP = init_model_parallel_group(
         group_ranks,
         parallel_state._WORLD.local_rank,
-        backend,
+        tp_backend,
         use_message_queue_broadcaster=get_bool_env_var(
             "SGLANG_USE_MESSAGE_QUEUE_BROADCASTER", "true"
         ),
@@ -151,7 +159,7 @@ def initialize_model_parallel(
         parallel_state._PDMUX_PREFILL_TP_GROUP = init_model_parallel_group(
             group_ranks,
             parallel_state._WORLD.local_rank,
-            backend,
+            tp_backend,
             use_message_queue_broadcaster=get_bool_env_var(
                 "SGLANG_USE_MESSAGE_QUEUE_BROADCASTER", "true"
             ),
@@ -181,7 +189,7 @@ def initialize_model_parallel(
     parallel_state._MOE_EP = init_model_parallel_group(
         group_ranks,
         parallel_state._WORLD.local_rank,
-        backend,
+        gloo_backend,
         use_custom_allreduce=False,
         group_name="moe_ep",
     )
@@ -202,7 +210,7 @@ def initialize_model_parallel(
         parallel_state._MOE_TP = init_model_parallel_group(
             group_ranks,
             parallel_state._WORLD.local_rank,
-            backend,
+            gloo_backend,
             use_custom_allreduce=False,
             group_name="moe_tp",
         )
@@ -224,7 +232,7 @@ def initialize_model_parallel(
     parallel_state._PP = init_model_parallel_group(
         group_ranks,
         parallel_state._WORLD.local_rank,
-        backend,
+        gloo_backend,
         use_custom_allreduce=False,
         group_name="pp",
     )
@@ -265,7 +273,7 @@ def initialize_model_parallel(
         parallel_state._ATTN_CP = init_model_parallel_group(
             group_ranks,
             parallel_state._WORLD.local_rank,
-            backend,
+            gloo_backend,
             group_name="attn_cp",
         )
 
@@ -294,7 +302,7 @@ def initialize_model_parallel(
         parallel_state._ATTN_TP = init_model_parallel_group(
             group_ranks,
             parallel_state._WORLD.local_rank,
-            backend,
+            gloo_backend,
             use_pynccl=SYNC_TOKEN_IDS_ACROSS_TP,
             use_mscclpp_allreduce=False,
             use_custom_allreduce=False,
@@ -325,7 +333,7 @@ def initialize_model_parallel(
         parallel_state._MOE_DP = init_model_parallel_group(
             group_ranks,
             parallel_state._WORLD.local_rank,
-            backend,
+            gloo_backend,
             group_name="moe_dp",
         )
 

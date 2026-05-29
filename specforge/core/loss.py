@@ -10,6 +10,35 @@ import torch.nn as nn
 import triton
 import triton.language as tl
 
+import torch.nn.functional as F
+
+class PyTorchNativeLogSoftmaxLoss(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, logits, target, position_mask):
+        log_probs = F.log_softmax(logits, dim=-1)
+        plogp = target * log_probs
+        loss = -torch.sum(position_mask * plogp, dim=2).mean()
+        probs = torch.exp(log_probs)
+        ctx.save_for_backward(probs, target, position_mask)
+
+        return loss
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        probs, target, position_mask = ctx.saved_tensors
+        B, T, V = probs.shape
+
+        scaling_factor = grad_output / (B * T)
+
+        target_sum = target.sum(dim=-1, keepdim=True)
+
+        grad_logits = (probs * target_sum - target)
+        grad_logits = grad_logits * position_mask
+        grad_logits = grad_logits * scaling_factor
+        return grad_logits, None, None
+
+def pytorch_native_compute_loss(logits, target, position_mask):
+    return PyTorchNativeLogSoftmaxLoss.apply(logits, target, position_mask)
 
 # Reference implementation
 @torch.compile(dynamic=None)

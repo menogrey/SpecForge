@@ -4,6 +4,8 @@ import warnings
 from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple
 
+from jinja2.exceptions import TemplateError
+
 import torch
 from transformers import PreTrainedTokenizer
 
@@ -193,9 +195,11 @@ class GeneralParser(Parser):
                         break
                 sentence = self._sanitize_message(sentence)
                 messages.append(sentence)
+            if not any(msg["role"] == "user" for msg in messages) and tool:
+                tool = []
             try:
                 conversation = self.apply_chat_template(messages, tool=tool, **kwargs)
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, TemplateError):
                 # Fallback rendering for tokenizers without built-in chat_template
                 warnings.warn(
                     "Tokenizer does not have a chat_template, using fallback rendering."

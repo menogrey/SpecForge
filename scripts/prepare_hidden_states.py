@@ -42,6 +42,12 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+try:
+    import torch_npu
+    from torch_npu.contrib import transfer_to_npu
+except ImportError:
+    pass
+
 import torch
 import torch.distributed as dist
 from tqdm import tqdm

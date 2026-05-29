@@ -31,7 +31,7 @@ from specforge.core.eagle3_adapters import BackendAdapter, SdpaLikeAdapter, UspA
 from specforge.core.loss import LogSoftmaxLoss
 from specforge.modeling.draft import Eagle3DraftModel
 from specforge.utils import padding
-
+from specforge.core.loss import PyTorchNativeLogSoftmaxLoss
 
 class Eagle3Model(nn.Module):
     pass
@@ -92,7 +92,7 @@ class OnlineEagle3Model(Eagle3Model):
             )
             acc = local_correct / local_denom
 
-        loss = LogSoftmaxLoss.apply(logits, target_p, position_mask)
+        loss = PyTorchNativeLogSoftmaxLoss.apply(logits, target_p, position_mask)
         loss = adapter.reduce_loss(loss)
         return acc, loss
 
