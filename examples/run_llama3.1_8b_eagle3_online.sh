@@ -20,10 +20,10 @@ torchrun \
     --batch-size 1 \
     --tp-size $TP_SIZE \
     --learning-rate 1e-4 \
-    --max-length 512 \
+    --max-length 2048 \
     --chat-template llama3 \
     --cache-dir $ROOT_DIR/cache \
     --attention-backend sdpa \
     --target-model-backend sglang \
     --log-interval 10 \
-    --sglang-mem-fraction-static 0.4
+    --sglang-mem-fraction-static 0.3

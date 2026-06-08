@@ -262,9 +262,16 @@ class CosineAnnealingWarmupLR(WarmupScheduler):
         eta_min: float = 0.0,
         last_epoch: int = -1,
     ):
+        cosine_steps = max(1, total_steps - warmup_steps)
+        if cosine_steps != total_steps - warmup_steps:
+            warn(
+                f"total_steps - warmup_steps = {total_steps - warmup_steps} <= 0, "
+                f"adjusting cosine T_max to {cosine_steps}. "
+                f"Consider increasing total_steps or decreasing warmup_steps."
+            )
         base_scheduler = _CosineAnnealingLR(
             optimizer,
-            total_steps - warmup_steps,
+            cosine_steps,
             eta_min=eta_min,
             last_epoch=last_epoch,
         )

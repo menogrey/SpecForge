@@ -61,6 +61,7 @@ from specforge.utils import (
     safe_conversations_generator,
 )
 
+torch.npu.memory._record_memory_history(max_entries=100000)
 
 def parse_args() -> Tuple[ArgumentParser, Namespace]:
     """
@@ -891,13 +892,15 @@ def main():
             # 7.0 Profiling
             # ================================================
             if args.profile:
+                #torch.npu.memory._record_memory_history(max_entries=100000)
                 # we add the step by 1 to align with global step
                 if global_step == args.profile_start_step + 1:
                     print("Start profile")
-                    torch_profiler = torch.profiler.profile(
+                    torch_profiler = torch_npu.profiler.profile(
                         activities=[
-                            torch.profiler.ProfilerActivity.CPU,
-                            torch.profiler.ProfilerActivity.CUDA,
+                            torch_npu.profiler.ProfilerActivity.CPU,
+                            #torch.profiler.ProfilerActivity.CUDA,
+                            torch_npu.profiler.ProfilerActivity.NPU,
                         ],
                         with_stack=True,
                         record_shapes=args.profile_record_shapes,
@@ -906,10 +909,12 @@ def main():
                 if global_step == args.profile_start_step + args.profile_num_steps + 1:
                     output_path = os.path.join(
                         args.output_dir,
-                        f"profile_rank{torch.distributed.get_rank()}_{time.time()}.trace.json.gz",
+                        f"profile_rank{torch.distributed.get_rank()}_{time.time()}.trace.json",
                     )
                     print(f"End profile {output_path=}")
                     torch_profiler.stop()
+                    print("Export snapshot pickle")
+                    torch.npu.memory._dump_snapshot("snapshot.pickle")
                     torch_profiler.export_chrome_trace(output_path)
 
             # ================================================

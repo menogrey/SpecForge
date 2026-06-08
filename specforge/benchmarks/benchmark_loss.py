@@ -3,7 +3,9 @@ import time
 
 import torch
 
-from specforge.core.loss import LogSoftmaxLoss, _compute_loss
+from specforge.core.loss_npu import LogSoftmaxLoss, _compute_loss
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 
 TTT_LENGTH = 7
 
@@ -22,25 +24,25 @@ def benchmark_loss_method(
         print(f"\nTesting config: B={B}, T={T}, V={V}")
 
         # Clear GPU cache
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-            torch.cuda.reset_peak_memory_stats()
+        if torch.npu.is_available():
+            torch.npu.empty_cache()
+            torch.npu.reset_peak_memory_stats()
 
         # Create tensors outside timing measurement
         target = torch.softmax(
-            torch.randn(B, T, V, device="cuda", dtype=torch.float32), dim=-1
+            torch.randn(B, T, V, device="npu", dtype=torch.float32), dim=-1
         )
-        position_mask = torch.ones((B, T, 1), dtype=torch.bool, device="cuda")
+        position_mask = torch.ones((B, T, 1), dtype=torch.bool, device="npu")
 
         # Pre-allocate logits tensors for each TTT step
         logits_list = []
         for i in range(TTT_LENGTH):
             logits = torch.randn(
-                B, T, V, device="cuda", requires_grad=True, dtype=torch.float32
+                B, T, V, device="npu", requires_grad=True, dtype=torch.float32
             )
             logits_list.append(logits)
 
-        torch.cuda.synchronize()  # Ensure all operations are complete
+        torch.npu.synchronize()  # Ensure all operations are complete
         start_time = time.time()
 
         plosses = []
@@ -59,15 +61,15 @@ def benchmark_loss_method(
         )
         ploss.backward()
 
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
+        if torch.npu.is_available():
+            torch.npu.synchronize()
 
         end_time = time.time()
         total_time = end_time - start_time
         # Record memory usage
         peak_memory = 0
-        if torch.cuda.is_available():
-            peak_memory = torch.cuda.max_memory_allocated()
+        if torch.npu.is_available():
+            peak_memory = torch.npu.max_memory_allocated()
 
         results.append(
             {
@@ -93,12 +95,12 @@ def main():
     args = parser.parse_args()
 
     print("PyTorch version:", torch.__version__)
-    if torch.cuda.is_available():
-        print("CUDA available:", torch.cuda.is_available())
-        print("GPU:", torch.cuda.get_device_name())
+    if torch.npu.is_available():
+        print("CUDA available:", torch.npu.is_available())
+        print("GPU:", torch.npu.get_device_name())
         print(
             "GPU memory:",
-            torch.cuda.get_device_properties(0).total_memory / 1024**3,
+            torch.npu.get_device_properties(0).total_memory / 1024**3,
             "GB",
         )
     else:

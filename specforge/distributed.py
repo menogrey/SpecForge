@@ -32,7 +32,7 @@ if _DEVICE_TYPE == "npu":
         use_local_synchronization=False, group_desc=None, device_id=None,
     ):
         if backend is None:
-            backend = "gloo"
+            backend = "hccl"
         return _orig_new_group_with_tag(
             ranks, timeout, backend, pg_options, group_name,
             use_local_synchronization=use_local_synchronization,

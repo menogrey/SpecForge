@@ -28,10 +28,10 @@ import torch.nn.functional as F
 from transformers.cache_utils import DynamicCache
 
 from specforge.core.eagle3_adapters import BackendAdapter, SdpaLikeAdapter, UspAdapter
-from specforge.core.loss import LogSoftmaxLoss
+from specforge.core.loss_npu import LogSoftmaxLoss
 from specforge.modeling.draft import Eagle3DraftModel
 from specforge.utils import padding
-from specforge.core.loss import PyTorchNativeLogSoftmaxLoss
+from specforge.core.loss_npu import _compute_loss
 
 class Eagle3Model(nn.Module):
     pass
@@ -92,7 +92,8 @@ class OnlineEagle3Model(Eagle3Model):
             )
             acc = local_correct / local_denom
 
-        loss = PyTorchNativeLogSoftmaxLoss.apply(logits, target_p, position_mask)
+        #loss = _compute_loss(logits, target_p, position_mask)
+        loss = LogSoftmaxLoss.apply(logits, target_p, position_mask)
         loss = adapter.reduce_loss(loss)
         return acc, loss
 

@@ -9,7 +9,7 @@ torchrun \
     --standalone \
     --nproc_per_node $NUM_GPUS \
     scripts/prepare_hidden_states.py \
-    --target-model-path meta-llama/Llama-3.1-8B-Instruct \
+    --target-model-path /root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct \
     --enable-aux-hidden-states \
     --data-path $ROOT_DIR/cache/dataset/sharegpt_train.jsonl \
     --output-path $ROOT_DIR/cache/hidden_states/sharegpt_train_Llama-3.1-8B-Instruct \
@@ -23,7 +23,7 @@ torchrun \
     --standalone \
     --nproc_per_node $NUM_GPUS \
     $ROOT_DIR/scripts/train_eagle3.py \
-    --target-model-path meta-llama/Llama-3.1-8B-Instruct \
+    --target-model-path /root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct \
     --draft-model-config $ROOT_DIR/configs/llama3-8B-eagle3.json \
     --train-data-path $ROOT_DIR/cache/dataset/sharegpt_train.jsonl \
     --train-hidden-states-path $ROOT_DIR/cache/hidden_states/sharegpt_train_Llama-3.1-8B-Instruct \
